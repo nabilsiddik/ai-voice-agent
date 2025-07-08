@@ -9,13 +9,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { IChatOption } from "@/types/chatOption.type";
 import { Textarea } from "./ui/textarea";
-import { agents } from "@/data/Agents";
 import AgentCard from "./AgentCard";
 import { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { agents } from "@/data/agents";
 
 interface ChatOptionModalProps {
   children: React.ReactNode;
@@ -23,14 +23,35 @@ interface ChatOptionModalProps {
 }
 
 const ChatOptionModal = ({ children, option }: ChatOptionModalProps) => {
-  const [selectedAgent, setSelectedAgent] = useState('')
-  const [topic, setTopic] = useState('')
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedAgent, setSelectedAgent] = useState("");
+  const [topicDetails, setTopicDetails] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const navitage = useNavigate();
 
   // Handle Next Button
-  const handleNext = () => {
-    setIsModalOpen(false)
-  }
+  const handleNext = async () => {
+    try {
+      const discussion = {
+        topicName: option?.name,
+        topicDetails: topicDetails,
+        agent: selectedAgent,
+      };
+
+      // Create Discussion room in database
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_SERVER_URI}/discussion-rooms`,
+        discussion
+      );
+
+      if (data.success) {
+        setIsModalOpen(false);
+        navitage(`/discussion-room/${data?.data?._id}`);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <div>
@@ -42,12 +63,13 @@ const ChatOptionModal = ({ children, option }: ChatOptionModalProps) => {
               <DialogTitle>{option?.name}</DialogTitle>
 
               <DialogDescription>
-                <p>Enter a topic to master your skills in {option.name}</p>
+                Enter a topic to master your skills in {option.name}
               </DialogDescription>
 
-              <Textarea onChange={(e) => {
-                setTopic(e.target.value)
-              }}
+              <Textarea
+                onChange={(e) => {
+                  setTopicDetails(e.target.value);
+                }}
                 className="mt-5"
                 placeholder="Type your topic here..."
               />
@@ -56,11 +78,21 @@ const ChatOptionModal = ({ children, option }: ChatOptionModalProps) => {
               <div className="grid grid-cols-3 gap-3">
                 {agents.length > 0 &&
                   agents.map((agent, index) => {
-                    return <div className={selectedAgent === agent.name ? 'border-2 rounded-md border-black' : ''} onClick={()=> {
-                      setSelectedAgent(agent.name)
-                    }} key={index}>
-                      <AgentCard agent={agent} />
-                    </div>
+                    return (
+                      <div
+                        className={
+                          selectedAgent === agent.name
+                            ? "border-2 rounded-md border-black"
+                            : ""
+                        }
+                        onClick={() => {
+                          setSelectedAgent(agent.name);
+                        }}
+                        key={index}
+                      >
+                        <AgentCard agent={agent} />
+                      </div>
+                    );
                   })}
               </div>
             </DialogHeader>
@@ -69,7 +101,12 @@ const ChatOptionModal = ({ children, option }: ChatOptionModalProps) => {
               <DialogClose asChild>
                 <Button variant="outline">Cancel</Button>
               </DialogClose>
-              <Button disabled={!topic || !selectedAgent} onClick={handleNext}>Next</Button>
+              <Button
+                disabled={!setTopicDetails || !selectedAgent}
+                onClick={handleNext}
+              >
+                Next
+              </Button>
             </DialogFooter>
           </DialogContent>
         </form>
