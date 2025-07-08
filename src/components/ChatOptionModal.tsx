@@ -15,6 +15,7 @@ import type { IChatOption } from "@/types/chatOption.type";
 import { Textarea } from "./ui/textarea";
 import { agents } from "@/data/Agents";
 import AgentCard from "./AgentCard";
+import { useState } from "react";
 
 interface ChatOptionModalProps {
   children: React.ReactNode;
@@ -22,10 +23,18 @@ interface ChatOptionModalProps {
 }
 
 const ChatOptionModal = ({ children, option }: ChatOptionModalProps) => {
-  console.log(option);
+  const [selectedAgent, setSelectedAgent] = useState('')
+  const [topic, setTopic] = useState('')
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Handle Next Button
+  const handleNext = () => {
+    setIsModalOpen(false)
+  }
+
   return (
     <div>
-      <Dialog>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <form>
           <DialogTrigger asChild>{children}</DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
@@ -36,16 +45,22 @@ const ChatOptionModal = ({ children, option }: ChatOptionModalProps) => {
                 <p>Enter a topic to master your skills in {option.name}</p>
               </DialogDescription>
 
-              <Textarea
+              <Textarea onChange={(e) => {
+                setTopic(e.target.value)
+              }}
                 className="mt-5"
-                placeholder="Type your message here."
+                placeholder="Type your topic here..."
               />
 
               <h3 className="text-xl text-left mt-6">Select Ai Agent</h3>
               <div className="grid grid-cols-3 gap-3">
                 {agents.length > 0 &&
                   agents.map((agent, index) => {
-                    return <AgentCard key={index} agent={agent} />;
+                    return <div className={selectedAgent === agent.name ? 'border-2 rounded-md border-black' : ''} onClick={()=> {
+                      setSelectedAgent(agent.name)
+                    }} key={index}>
+                      <AgentCard agent={agent} />
+                    </div>
                   })}
               </div>
             </DialogHeader>
@@ -54,7 +69,7 @@ const ChatOptionModal = ({ children, option }: ChatOptionModalProps) => {
               <DialogClose asChild>
                 <Button variant="outline">Cancel</Button>
               </DialogClose>
-              <Button type="submit">Save changes</Button>
+              <Button disabled={!topic || !selectedAgent} onClick={handleNext}>Next</Button>
             </DialogFooter>
           </DialogContent>
         </form>
